@@ -32,10 +32,19 @@ function cartCount(): number {
   }
 }
 
+function isLoggedIn(): boolean {
+  try {
+    return Boolean(localStorage.getItem('reform-user'));
+  } catch {
+    return false;
+  }
+}
+
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const [count, setCount] = useState(0);
+  const [loggedIn, setLoggedIn] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -46,12 +55,17 @@ export function Header() {
   }, []);
 
   useEffect(() => {
-    const sync = () => setCount(cartCount());
+    const sync = () => {
+      setCount(cartCount());
+      setLoggedIn(isLoggedIn());
+    };
     sync();
     window.addEventListener('reform-cart-updated', sync);
+    window.addEventListener('reform-auth-changed', sync);
     window.addEventListener('storage', sync);
     return () => {
       window.removeEventListener('reform-cart-updated', sync);
+      window.removeEventListener('reform-auth-changed', sync);
       window.removeEventListener('storage', sync);
     };
   }, []);
@@ -90,7 +104,8 @@ export function Header() {
           <Link href="/catalog" aria-label="Поиск" className="grid h-10 w-10 place-items-center transition hover:text-accent">
             <Search className="h-5 w-5" />
           </Link>
-          <Link href="/account" aria-label="Личный кабинет" className="grid h-10 w-10 place-items-center transition hover:text-accent">
+          <Link href={loggedIn ? '/account' : '/login'} aria-label="Личный кабинет"
+            className={`grid h-10 w-10 place-items-center transition ${loggedIn ? 'text-accent' : 'hover:text-accent'}`}>
             <User className="h-5 w-5" />
           </Link>
           <Link href="/cart" aria-label="Корзина" className="relative grid h-10 w-10 place-items-center transition hover:text-accent">
@@ -120,10 +135,10 @@ export function Header() {
                 {l.label}
               </Link>
             ))}
-            <Link href="/account" onClick={() => setOpen(false)}
+            <Link href={loggedIn ? '/account' : '/login'} onClick={() => setOpen(false)}
               className="animate-fade-up py-4 text-2xl font-medium tracking-tight text-accent"
               style={{ animationDelay: '300ms' }}>
-              Личный кабинет
+              {loggedIn ? 'Личный кабинет' : 'Войти'}
             </Link>
           </nav>
         </div>
