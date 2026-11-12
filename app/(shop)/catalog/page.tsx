@@ -321,7 +321,7 @@ export default function CatalogPage() {
       </section>
 
       {/* Toolbar */}
-      <div className="sticky top-0 z-30 border-b border-line bg-paper/95 backdrop-blur-xl">
+      <div className="sticky top-16 z-30 border-b border-line bg-paper/95 backdrop-blur-xl">
         <div className="mx-auto max-w-[1440px] px-4 py-3 sm:px-6 lg:px-10">
           <div className="flex flex-col gap-2 lg:flex-row">
             <div className="relative flex-1">
