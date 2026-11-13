@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Loader2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase/client';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -33,13 +34,30 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      // TODO: заменить на реальный Supabase Auth
-      await new Promise((r) => setTimeout(r, 800));
-      localStorage.setItem('reform-user', JSON.stringify({ email, name: name.trim() }));
-      window.dispatchEvent(new Event('reform-auth-changed'));
-      router.push('/account');
-    } catch {
-      setError('Не удалось создать аккаунт');
+      const { error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          data: { full_name: name.trim() }
+        }
+      });
+      if (error) throw error;
+      
+      // Сразу пробуем войти, чтобы не ждать письма (если отключено подтверждение)
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password
+      });
+      
+      if (signInError) {
+        // Если вход не удался (например, нужно подтверждение), просто редиректим на логин
+        router.push('/login?registered=1');
+      } else {
+        router.push('/account');
+        router.refresh();
+      }
+    } catch (err: any) {
+      setError(err.message || 'Не удалось создать аккаунт');
     } finally {
       setLoading(false);
     }
