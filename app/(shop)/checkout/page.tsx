@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
 import {
@@ -29,6 +29,7 @@ const DRAFT_KEY = 'reform-checkout-draft-v1';
 const RECEIPT_KEY = 'reform-last-order-v1';
 const ORDERS_KEY = 'reform-orders-v1';
 const FREE_FROM = 10000;
+
 const PICKUP_ADDRESS = 'Москва, ул. Большая Никитская, 12';
 
 const DELIVERY: { id: DeliveryMethod; label: string; note: string; icon: typeof Truck }[] = [
@@ -435,7 +436,7 @@ export default function CheckoutPage() {
               </span>
               <input type="checkbox" checked={agree} onChange={(e) => { setAgree(e.target.checked); blur('agree'); }} className="sr-only" />
               <span className={errors.agree ? 'text-danger' : 'text-ink-soft'}>
-                Согласен на обработку персональных данных для оформления и доставки заказа
+                Согласен на <Link href="/privacy" className="underline underline-offset-4 hover:text-accent">обработку персональных данных</Link> и принимаю <Link href="/terms" className="underline underline-offset-4 hover:text-accent">условия оферты</Link>
               </span>
             </label>
           </section>
@@ -612,7 +613,7 @@ const inputCls = (invalid: boolean) =>
   `h-11 w-full border bg-paper px-4 text-sm outline-none transition placeholder:text-mute/60 focus:border-ink ${invalid ? 'border-danger' : 'border-line'}`;
 
 function Field({ label, error, field, required, className = '', children }: {
-  label: string; error?: string; field: string; required?: boolean; className?: string; children: ReactNode;
+  label: string; error?: string; field: string; required?: boolean; className?: string; children: React.ReactNode;
 }) {
   return (
     <div data-field={field} className={className}>
