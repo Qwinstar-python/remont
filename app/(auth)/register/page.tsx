@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Loader2 } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
+import { createClient } from '@supabase/supabase-js';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -18,7 +18,6 @@ export default function RegisterPage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
     if (!name.trim() || !email.trim() || !password || !confirm) {
       setError('Заполните все поля');
       return;
@@ -34,23 +33,24 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      if (!url || !key) throw new Error('Настройки базы не найдены');
+
+      const supabase = createClient(url, key);
       const { error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
-        options: {
-          data: { full_name: name.trim() }
-        }
+        options: { data: { full_name: name.trim() } }
       });
       if (error) throw error;
       
-      // Сразу пробуем войти, чтобы не ждать письма (если отключено подтверждение)
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password
       });
       
       if (signInError) {
-        // Если вход не удался (например, нужно подтверждение), просто редиректим на логин
         router.push('/login?registered=1');
       } else {
         router.push('/account');
@@ -69,11 +69,9 @@ export default function RegisterPage() {
         <Link href="/" className="mb-8 inline-flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-mute transition hover:text-ink">
           <ArrowLeft className="h-4 w-4" /> На главную
         </Link>
-
         <p className="mb-2 text-2xl font-bold tracking-tight">RE<span className="text-accent">:</span>FORM</p>
         <h1 className="text-3xl font-medium tracking-tight">Регистрация</h1>
         <p className="mt-2 text-sm text-mute">Создайте аккаунт, чтобы отслеживать заказы.</p>
-
         <form onSubmit={submit} className="mt-8 space-y-5 border border-line bg-surface p-8">
           <div>
             <label className="mb-2 block text-[11px] font-medium uppercase tracking-[0.18em] text-ink-soft">Имя и фамилия</label>
@@ -95,16 +93,13 @@ export default function RegisterPage() {
             <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Ещё раз" autoComplete="new-password"
               className="h-11 w-full border border-line bg-paper px-4 text-sm outline-none transition focus:border-ink" />
           </div>
-
           {error && <p className="border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">{error}</p>}
-
           <button type="submit" disabled={loading}
             className="flex h-12 w-full items-center justify-center gap-2 bg-ink text-xs font-semibold uppercase tracking-[0.18em] text-paper transition hover:bg-accent disabled:opacity-60">
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
             Создать аккаунт
           </button>
         </form>
-
         <p className="mt-6 text-center text-sm text-mute">
           Уже есть аккаунт? <Link href="/login" className="font-medium text-accent underline underline-offset-4">Войдите</Link>
         </p>
