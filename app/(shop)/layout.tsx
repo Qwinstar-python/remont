@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, Search, ShoppingBag, User, X } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
+import { createClient } from '@supabase/supabase-js';
 
 const NAV = [
   { href: '/catalog', label: 'Каталог' },
@@ -40,7 +40,6 @@ export function Header() {
   const [loggedIn, setLoggedIn] = useState(false);
   const pathname = usePathname();
 
-  // Следим за скроллом для шапки
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
     onScroll();
@@ -48,30 +47,32 @@ export function Header() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Проверяем авторизацию и корзину при загрузке
   useEffect(() => {
     const sync = async () => {
       setCount(cartCount());
-      
-      // Проверяем сессию в Supabase
-      const { data } = await supabase.auth.getSession();
-      setLoggedIn(!!data.session);
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      if (url && key) {
+        const supabase = createClient(url, key);
+        const { data } = await supabase.auth.getSession();
+        setLoggedIn(!!data.session);
+      }
     };
     
     sync();
 
-    // Слушаем изменения корзины
     window.addEventListener('reform-cart-updated', sync);
     
-    // Слушаем изменения авторизации (вход/выход в другой вкладке)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setLoggedIn(!!session);
-    });
-
-    return () => {
-      window.removeEventListener('reform-cart-updated', sync);
-      subscription.unsubscribe();
-    };
+    // Для отслеживания изменений авторизации в других вкладках
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (url && key) {
+        const supabase = createClient(url, key);
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+          setLoggedIn(!!session);
+        });
+        return () => subscription.unsubscribe();
+    }
   }, []);
 
   useEffect(() => { setOpen(false); }, [pathname]);
