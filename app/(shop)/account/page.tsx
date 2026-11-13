@@ -4,29 +4,24 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
-import { LogOut, Package, User } from 'lucide-react';
+import { LogOut, Package, User, RefreshCcw } from 'lucide-react';
 
 type Order = {
   id: number;
-  date: string;
-  status: string;
-  total: number;
-  items: number;
+  created_at: string;
+  status: string | null;
+  total_amount: number;
 };
-
-// Временные демо-заказы, пока не подключили базу заказов
-const DEMO_ORDERS: Order[] = [
-  { id: 1024, date: '2026-11-10', status: 'Доставлен', total: 15750, items: 2 },
-  { id: 1018, date: '2026-11-03', status: 'В пути', total: 8900, items: 1 },
-];
 
 export default function AccountPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    const checkUser = async () => {
+    const checkUserAndLoadOrders = async () => {
       const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       
@@ -36,18 +31,33 @@ export default function AccountPage() {
       }
 
       const supabase = createClient(url, key);
+      
+      // 1. Проверяем сессию
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        // Если сессии нет — сразу кидаем на логин
         router.push('/login');
       } else {
         setUser(session.user);
+        
+        // 2. Загружаем заказы этого пользователя
+        try {
+          const { data, error } = await supabase
+            .from('orders')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .order('created_at', { ascending: false });
+
+          if (error) throw error;
+          setOrders(data || []);
+        } catch (err: any) {
+          setError(err.message);
+        }
       }
       setLoading(false);
     };
 
-    checkUser();
+    checkUserAndLoadOrders();
   }, [router]);
 
   const logout = async () => {
@@ -61,12 +71,28 @@ export default function AccountPage() {
     router.refresh();
   };
 
+  const refreshOrders = async () => {
+    setLoading(true);
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (url && key && user) {
+      const supabase = createClient(url, key);
+      const { data } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      if (data) setOrders(data);
+    }
+    setLoading(false);
+  };
+
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Проверка авторизации...</div>;
+    return <div className="min-h-screen flex items-center justify-center bg-paper">Загрузка данных...</div>;
   }
 
   if (!user) {
-    return null; // Пока идет редирект, ничего не показываем
+    return null; 
   }
 
   const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Пользователь';
@@ -94,28 +120,52 @@ export default function AccountPage() {
               <p className="truncate text-sm text-mute">{user.email}</p>
             </div>
           </div>
+          <div className="mt-6 space-y-4">
+             <p className="text-xs text-mute">Редактирование профиля будет доступно после подключения полноценного бэкенда.</p>
+          </div>
         </section>
 
         {/* Заказы */}
         <section>
-          <h2 className="mb-5 text-sm font-medium uppercase tracking-[0.18em]">История заказов</h2>
-          <div className="space-y-3">
-            {DEMO_ORDERS.map((o) => (
-              <article key={o.id} className="border border-line bg-surface p-5 transition hover:border-ink/20">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="font-medium">Заказ №{o.id}</p>
-                    <p className="text-xs text-mute">{new Date(o.date).toLocaleDateString('ru-RU')} · {o.items} товар(а)</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium">{new Intl.NumberFormat('ru-RU').format(o.total)} ₽</p>
-                    <p className={`text-xs ${o.status === 'Доставлен' ? 'text-success' : 'text-accent'}`}>{o.status}</p>
-                  </div>
-                </div>
-              </article>
-            ))}
+          <div className="mb-5 flex items-center justify-between">
+            <h2 className="text-sm font-medium uppercase tracking-[0.18em]">История заказов</h2>
+            <button onClick={refreshOrders} disabled={loading} className="inline-flex items-center gap-1 text-xs text-mute hover:text-ink">
+              <RefreshCcw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} /> Обновить
+            </button>
           </div>
-          <p className="mt-4 text-xs text-mute">Это демо-данные. Реальные заказы появятся после подключения базы заказов.</p>
+
+          {error && (
+            <div className="mb-4 border border-danger/30 bg-danger/5 p-3 text-sm text-danger">
+              Не удалось загрузить заказы: {error}
+            </div>
+          )}
+
+          <div className="space-y-3">
+            {orders.length === 0 ? (
+              <div className="border border-line bg-surface p-10 text-center">
+                <Package className="mx-auto h-10 w-10 text-mute" />
+                <p className="mt-3 text-sm text-mute">У вас пока нет оформленных заказов.</p>
+                <Link href="/catalog" className="mt-4 inline-block text-xs font-medium text-accent underline">Перейти в каталог</Link>
+              </div>
+            ) : (
+              orders.map((o) => (
+                <article key={o.id} className="border border-line bg-surface p-5 transition hover:border-ink/20">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="font-medium">Заказ №{o.id}</p>
+                      <p className="text-xs text-mute">{new Date(o.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium">{new Intl.NumberFormat('ru-RU').format(o.total_amount)} ₽</p>
+                      <p className={`text-xs ${o.status === 'delivered' ? 'text-success' : 'text-accent'}`}>
+                        {o.status === 'pending' ? 'В обработке' : o.status === 'shipped' ? 'Отправлен' : o.status === 'delivered' ? 'Доставлен' : o.status}
+                      </p>
+                    </div>
+                  </div>
+                </article>
+              ))
+            )}
+          </div>
         </section>
       </div>
     </div>
