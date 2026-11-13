@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, Search, ShoppingBag, User, X } from 'lucide-react';
+import { supabase } from '@/lib/supabase/client';
 
 const NAV = [
   { href: '/catalog', label: 'Каталог' },
@@ -32,14 +33,6 @@ function cartCount(): number {
   }
 }
 
-function isLoggedIn(): boolean {
-  try {
-    return Boolean(localStorage.getItem('reform-user'));
-  } catch {
-    return false;
-  }
-}
-
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
@@ -47,6 +40,7 @@ export function Header() {
   const [loggedIn, setLoggedIn] = useState(false);
   const pathname = usePathname();
 
+  // Следим за скроллом для шапки
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
     onScroll();
@@ -54,19 +48,29 @@ export function Header() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // Проверяем авторизацию и корзину при загрузке
   useEffect(() => {
-    const sync = () => {
+    const sync = async () => {
       setCount(cartCount());
-      setLoggedIn(isLoggedIn());
+      
+      // Проверяем сессию в Supabase
+      const { data } = await supabase.auth.getSession();
+      setLoggedIn(!!data.session);
     };
+    
     sync();
+
+    // Слушаем изменения корзины
     window.addEventListener('reform-cart-updated', sync);
-    window.addEventListener('reform-auth-changed', sync);
-    window.addEventListener('storage', sync);
+    
+    // Слушаем изменения авторизации (вход/выход в другой вкладке)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setLoggedIn(!!session);
+    });
+
     return () => {
       window.removeEventListener('reform-cart-updated', sync);
-      window.removeEventListener('reform-auth-changed', sync);
-      window.removeEventListener('storage', sync);
+      subscription.unsubscribe();
     };
   }, []);
 
