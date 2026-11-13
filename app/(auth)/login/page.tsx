@@ -2,11 +2,15 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Loader2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase/client';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = searchParams.get('next') || '/account';
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -21,13 +25,15 @@ export default function LoginPage() {
     }
     setLoading(true);
     try {
-      // TODO: заменить на реальный Supabase Auth когда дойдём до бэкенда авторизации
-      await new Promise((r) => setTimeout(r, 800));
-      localStorage.setItem('reform-user', JSON.stringify({ email, name: email.split('@')[0] }));
-      window.dispatchEvent(new Event('reform-auth-changed'));
-      router.push('/account');
-    } catch {
-      setError('Не удалось войти');
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password
+      });
+      if (error) throw error;
+      router.push(next);
+      router.refresh();
+    } catch (err: any) {
+      setError(err.message || 'Не удалось войти');
     } finally {
       setLoading(false);
     }
