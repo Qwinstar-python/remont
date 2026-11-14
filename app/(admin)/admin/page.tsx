@@ -532,7 +532,7 @@ export default function AdminPage() {
     );
   }
 
-  const TABS: { id: Tab; label: string; icon: typeof BarChart3; badge?: number }[] = [
+  const TABS: { id: Tab; label: string; icon: any; badge?: number }[] = [
     { id: 'overview', label: 'Обзор', icon: BarChart3 },
     { id: 'products', label: 'Товары', icon: Boxes, badge: products.length },
     { id: 'orders', label: 'Заказы', icon: ShoppingBag, badge: metrics.pending || undefined },
