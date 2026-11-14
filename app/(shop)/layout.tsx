@@ -113,6 +113,10 @@ export function Header() {
             className={`grid h-10 w-10 place-items-center transition ${loggedIn ? 'text-accent' : 'hover:text-accent'}`}>
             <User className="h-5 w-5" />
           </Link>
+          <Link href="/wishlist" aria-label="Избранное" className="relative grid h-10 w-10 place-items-center transition hover:text-accent">
+  <Heart className="h-5 w-5" />
+</Link>
+
           <Link href="/cart" aria-label="Корзина" className="relative grid h-10 w-10 place-items-center transition hover:text-accent">
             <ShoppingBag className="h-5 w-5" />
             {count > 0 && (
