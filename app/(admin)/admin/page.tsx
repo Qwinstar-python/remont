@@ -7,9 +7,10 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import {
   AlertTriangle, ArrowDownRight, ArrowUpRight, BarChart3, Boxes, Check, ChevronRight,
   Copy, Database, Download, Eye, EyeOff, GripVertical, Image as ImageIcon, LayoutGrid,
-  Loader2, LogOut, Package, Pencil, Plus, RefreshCcw, Search, ShieldAlert, ShoppingBag,
+  Loader2, LogOut, Package, Pencil, Plus, RefreshCcw, Search, Settings, ShieldAlert, ShoppingBag,
   Sparkles, Tag, Trash2, Truck, Upload, X, Zap
 } from 'lucide-react';
+import AdminSettingsPage from './settings/page';
 
 type Condition = 'new' | 'excellent' | 'good' | 'fair';
 type OrderStatus = 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
@@ -33,7 +34,7 @@ type Order = {
   status: OrderStatus; created_at: string; order_items: OrderItem[];
 };
 type Toast = { id: number; title: string; desc?: string; tone: 'ok' | 'warn' | 'bad'; undo?: () => void };
-type Tab = 'overview' | 'products' | 'orders' | 'taxonomy';
+type Tab = 'overview' | 'products' | 'orders' | 'taxonomy' | 'settings';
 type GateState = 'checking' | 'login' | 'setup' | 'denied' | 'ok' | 'demo';
 type ToastFn = (title: string, desc?: string, tone?: Toast['tone'], undo?: () => void) => void;
 
@@ -535,7 +536,8 @@ export default function AdminPage() {
     { id: 'overview', label: 'Обзор', icon: BarChart3 },
     { id: 'products', label: 'Товары', icon: Boxes, badge: products.length },
     { id: 'orders', label: 'Заказы', icon: ShoppingBag, badge: metrics.pending || undefined },
-    { id: 'taxonomy', label: 'Справочники', icon: Tag }
+    { id: 'taxonomy', label: 'Справочники', icon: Tag },
+    { id: 'settings', label: 'Настройки', icon: Settings }
   ];
 
   return (
@@ -606,6 +608,7 @@ export default function AdminPage() {
             {tab === 'products' && <ProductsTab products={products} brands={brands} categories={categories} onCreate={() => setEditor({ mode: 'create', product: null })} onEdit={(p) => setEditor({ mode: 'edit', product: p })} onDelete={deleteProduct} onBulk={bulkPublish} onExport={exportCsv} onToggle={(p) => void bulkPublish(new Set([p.id]), !p.is_published)} brandName={brandName} categoryName={categoryName} />}
             {tab === 'orders' && <OrdersTab orders={orders} onOpen={setDrawerOrder} onStatus={changeStatus} onExport={exportCsv} />}
             {tab === 'taxonomy' && <TaxonomyTab brands={brands} categories={categories} products={products} onAdd={addTaxonomy} onRemove={removeTaxonomy} onReorder={reorderCategories} />}
+            {tab === 'settings' && <AdminSettingsPage />}
           </>
         )}
       </main>
