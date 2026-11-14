@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, Search, ShoppingBag, User, X } from 'lucide-react';
+import { Heart, Menu, Search, ShoppingBag, User, X } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 
 const NAV = [
@@ -40,6 +40,7 @@ export function Header() {
   const [loggedIn, setLoggedIn] = useState(false);
   const pathname = usePathname();
 
+  // Следим за скроллом для шапки
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
     onScroll();
@@ -47,9 +48,12 @@ export function Header() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // Проверяем авторизацию и корзину при загрузке
   useEffect(() => {
     const sync = async () => {
       setCount(cartCount());
+      
+      // Проверяем сессию в Supabase
       const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       if (url && key) {
@@ -61,9 +65,10 @@ export function Header() {
     
     sync();
 
+    // Слушаем изменения корзины
     window.addEventListener('reform-cart-updated', sync);
     
-    // Для отслеживания изменений авторизации в других вкладках
+    // Слушаем изменения авторизации (вход/выход в другой вкладке)
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     if (url && key) {
@@ -109,14 +114,16 @@ export function Header() {
           <Link href="/catalog" aria-label="Поиск" className="grid h-10 w-10 place-items-center transition hover:text-accent">
             <Search className="h-5 w-5" />
           </Link>
+          
+          {/* Ссылка на Избранное */}
+          <Link href="/wishlist" aria-label="Избранное" className="grid h-10 w-10 place-items-center transition hover:text-accent">
+            <Heart className="h-5 w-5" />
+          </Link>
+
           <Link href={loggedIn ? '/account' : '/login'} aria-label="Личный кабинет"
             className={`grid h-10 w-10 place-items-center transition ${loggedIn ? 'text-accent' : 'hover:text-accent'}`}>
             <User className="h-5 w-5" />
           </Link>
-          <Link href="/wishlist" aria-label="Избранное" className="relative grid h-10 w-10 place-items-center transition hover:text-accent">
-            <Heart className="h-5 w-5" />
-            </Link>
-
           <Link href="/cart" aria-label="Корзина" className="relative grid h-10 w-10 place-items-center transition hover:text-accent">
             <ShoppingBag className="h-5 w-5" />
             {count > 0 && (
