@@ -7,7 +7,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import {
   AlertTriangle, ArrowDownRight, ArrowUpRight, BarChart3, Boxes, Check, ChevronRight,
   Copy, Database, Download, Eye, EyeOff, GripVertical, Image as ImageIcon, LayoutGrid,
-  Loader2, LogOut, Package, Pencil, Plus, RefreshCcw, Search, Settings, ShieldAlert, ShoppingBag,
+  Loader2, LogOut, Package, Pencil, Plus, RefreshCcw, Search, Save, Settings, ShieldAlert, ShoppingBag,
   Sparkles, Tag, Trash2, Truck, Upload, X, Zap
 } from 'lucide-react';
 import AdminSettingsPage from './settings/page';
