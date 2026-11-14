@@ -33,6 +33,30 @@ function cartCount(): number {
   }
 }
 
+// Хук для загрузки настроек
+function useShopSettings() {
+  const [settings, setSettings] = useState({
+    shop_name: 'RE:FORM',
+    contact_phone: '+7 (999) 123-45-67',
+    contact_email: 'hello@reform.store',
+    contact_telegram: '@reform_store',
+    pickup_address: 'Москва, ул. Большая Никитская, 12'
+  });
+
+  useEffect(() => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !key) return;
+
+    const supabase = createClient(url, key);
+    supabase.from('shop_settings').select('*').eq('id', 1).single().then(({ data }) => {
+      if (data) setSettings(data);
+    });
+  }, []);
+
+  return settings;
+}
+
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
@@ -40,7 +64,6 @@ export function Header() {
   const [loggedIn, setLoggedIn] = useState(false);
   const pathname = usePathname();
 
-  // Следим за скроллом для шапки
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
     onScroll();
@@ -48,12 +71,9 @@ export function Header() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Проверяем авторизацию и корзину при загрузке
   useEffect(() => {
     const sync = async () => {
       setCount(cartCount());
-      
-      // Проверяем сессию в Supabase
       const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       if (url && key) {
@@ -62,13 +82,9 @@ export function Header() {
         setLoggedIn(!!data.session);
       }
     };
-    
     sync();
-
-    // Слушаем изменения корзины
     window.addEventListener('reform-cart-updated', sync);
     
-    // Слушаем изменения авторизации (вход/выход в другой вкладке)
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     if (url && key) {
@@ -81,7 +97,6 @@ export function Header() {
   }, []);
 
   useEffect(() => { setOpen(false); }, [pathname]);
-
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
@@ -114,12 +129,9 @@ export function Header() {
           <Link href="/catalog" aria-label="Поиск" className="grid h-10 w-10 place-items-center transition hover:text-accent">
             <Search className="h-5 w-5" />
           </Link>
-          
-          {/* Ссылка на Избранное */}
           <Link href="/wishlist" aria-label="Избранное" className="grid h-10 w-10 place-items-center transition hover:text-accent">
             <Heart className="h-5 w-5" />
           </Link>
-
           <Link href={loggedIn ? '/account' : '/login'} aria-label="Личный кабинет"
             className={`grid h-10 w-10 place-items-center transition ${loggedIn ? 'text-accent' : 'hover:text-accent'}`}>
             <User className="h-5 w-5" />
@@ -164,12 +176,14 @@ export function Header() {
 }
 
 export function Footer() {
+  const s = useShopSettings(); // Получаем настройки
+  
   return (
     <footer className="mt-24 bg-ink text-paper">
       <div className="mx-auto max-w-[1440px] px-4 py-16 sm:px-6 lg:px-10">
         <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-4">
           <div>
-            <p className="text-lg font-bold tracking-tight">RE<span className="text-accent">:</span>FORM</p>
+            <p className="text-lg font-bold tracking-tight">{s.shop_name}</p>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-paper/60">
               Брендовая одежда с историей. Раньше вы находили нас на Авито — теперь у нас собственный магазин.
             </p>
@@ -195,15 +209,15 @@ export function Footer() {
           <div>
             <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-paper/40">Контакты</p>
             <ul className="mt-4 space-y-3 text-sm text-paper/70">
-              <li>Москва, ул. Большая Никитская, 12</li>
-              <li><a className="transition hover:text-paper" href="tel:+79991234567">+7 (999) 123-45-67</a></li>
-              <li><a className="transition hover:text-paper" href="mailto:hello@reform.store">hello@reform.store</a></li>
+              <li>{s.pickup_address}</li>
+              <li><a className="transition hover:text-paper" href={`tel:${s.contact_phone.replace(/\D/g,'')}`}>{s.contact_phone}</a></li>
+              <li><a className="transition hover:text-paper" href={`mailto:${s.contact_email}`}>{s.contact_email}</a></li>
             </ul>
           </div>
         </div>
         <p className="mt-16 select-none text-center text-[16vw] font-bold leading-[0.8] tracking-tight text-paper/5 lg:text-[11rem]">RE:FORM</p>
         <div className="mt-10 border-t border-paper/10 pt-6 text-xs text-paper/40">
-          © 2026 RE:FORM. Все права защищены.
+          © {new Date().getFullYear()} {s.shop_name}. Все права защищены.
         </div>
       </div>
     </footer>
